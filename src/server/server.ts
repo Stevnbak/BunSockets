@@ -11,7 +11,7 @@ class SocketServer<DataType = unknown> {
 	}
 
 	//Clients
-	private clients: {[key: ClientID]: SocketClient | undefined} = {};
+	public clients: {[key: ClientID]: SocketClient | undefined} = {};
 	private addClient(client: SocketClient) {
 		this.clients[client.id] = client;
 	}
