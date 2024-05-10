@@ -22,4 +22,8 @@ export class SocketClient<DataType, MessageID extends string> {
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
 		this.socket.send(message);
 	}
+	//Data
+	public get data() {
+		return this.socket.data;
+	}
 }
