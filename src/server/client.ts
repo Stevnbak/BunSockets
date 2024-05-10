@@ -21,7 +21,7 @@ export class SocketClient<DataType, MessageID extends string, ContentTypes exten
 	public send<ID extends MessageID>(messageID: ID, content: ContentTypes[ID]): void;
 	public send(messageID: "ERROR", content: string): void;
 	public send(messageID: string, content: any) {
-		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
+		const message = JSON.stringify({id: messageID, data: content});
 		this.socket.send(message);
 	}
 	//Data

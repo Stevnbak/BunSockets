@@ -22,20 +22,16 @@ class Socket<MessageID extends string = string> {
 		this.socket.addEventListener("message", (event) => {
 			//Parse message
 			const msg = event.data.toString();
-			const id = msg
-				.match(/ID\(.*\)/)?.[0]
-				.replace("ID(", "")
-				.replace(")", "") as "ERROR" | MessageID | undefined;
-			let parsedMsg: {data: unknown};
+			let parsedMsg: {id: MessageID; data: unknown};
 			try {
-				parsedMsg = JSON.parse(msg.replace(`ID(${id})|`, ""));
+				parsedMsg = JSON.parse(msg);
 			} catch {
 				this.send("ERROR", "Unrecognized message format.");
 				return;
 			}
 			//Call listener callbacks
 			for (let listener of this.listeners) {
-				if (listener.id == id) listener.cb(parsedMsg.data);
+				if (listener.id == parsedMsg.id) listener.cb(parsedMsg.data);
 			}
 		});
 		// socket opened

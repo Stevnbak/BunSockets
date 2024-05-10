@@ -42,13 +42,9 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public handler: WebSocketHandler<ClientData<DataType>> = {
 		message: (socket, msg: string) => {
 			//Parse message
-			const id = msg
-				.match(/ID\(.*\)/)?.[0]
-				.replace("ID(", "")
-				.replace(")", "") as MessageID | undefined;
-			let parsedMsg: {data: unknown};
+			let parsedMsg: {id: MessageID; data: unknown};
 			try {
-				parsedMsg = JSON.parse(msg.replace(`ID(${id})|`, ""));
+				parsedMsg = JSON.parse(msg);
 			} catch {
 				this.send(socket.data.id, "ERROR", "Unrecognized message format.");
 				return;
@@ -60,12 +56,12 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 				return;
 			}
 			//Error?
-			if (id == "ERROR") {
+			if (parsedMsg.id == "ERROR") {
 				console.error(`Client(${client.id}) send an error message: \"${parsedMsg.data}\"`);
 			}
 			//Call listener callbacks
 			for (let listener of this.listeners) {
-				if (listener.id == id) listener.cb<typeof id>(client, parsedMsg.data as typeof id extends MessageID ? ContentTypes[typeof id] : any);
+				if (listener.id == parsedMsg.id) listener.cb<typeof parsedMsg.id>(client, parsedMsg.data as typeof parsedMsg.id extends MessageID ? ContentTypes[typeof parsedMsg.id] : any);
 			}
 		},
 		open: async (socket) => {
