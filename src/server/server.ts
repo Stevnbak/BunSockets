@@ -1,29 +1,29 @@
 import type {WebSocketHandler, Server} from "bun";
-import {SocketClient, type ClientID} from "./client";
+import {SocketClient, type ClientData, type ClientID} from "./client";
 export default <DataType = unknown, MessageID extends string = string>() => {
 	return new SocketServer<DataType, MessageID>();
 };
 class SocketServer<DataType = unknown, MessageID extends string = string> {
 	// Listeners
-	private listeners: {id: "ERROR" | MessageID; cb: (client: SocketClient<ClientData<DataType>, MessageID>, message: unknown) => void}[] = [];
-	private openListener: ((client: SocketClient<ClientData<DataType>, MessageID>) => void) | undefined;
-	private closeListener: ((client?: SocketClient<ClientData<DataType>, MessageID>) => void) | undefined;
-	public connected(cb: (client: SocketClient<ClientData<DataType>, MessageID>) => void): void {
+	private listeners: {id: "ERROR" | MessageID; cb: (client: SocketClient<DataType, MessageID>, message: unknown) => void}[] = [];
+	private openListener: ((client: SocketClient<DataType, MessageID>) => void) | undefined;
+	private closeListener: ((client?: SocketClient<DataType, MessageID>) => void) | undefined;
+	public connected(cb: (client: SocketClient<DataType, MessageID>) => void): void {
 		this.openListener = cb;
 	}
-	public disconnected(cb: (client?: SocketClient<ClientData<DataType>, MessageID>) => void): void {
+	public disconnected(cb: (client?: SocketClient<DataType, MessageID>) => void): void {
 		this.closeListener = cb;
 	}
-	public on(id: "ERROR" | MessageID, cb: (client: SocketClient<ClientData<DataType>, MessageID>, message: unknown) => void): void {
+	public on(id: "ERROR" | MessageID, cb: (client: SocketClient<DataType, MessageID>, message: unknown) => void): void {
 		this.listeners.push({id, cb});
 	}
 
 	//Clients
-	private _clients: {[key: ClientID]: SocketClient<ClientData<DataType>, MessageID> | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient<DataType, MessageID> | undefined} = {};
 	public get clients() {
 		return this._clients;
 	}
-	private addClient(client: SocketClient<ClientData<DataType>, MessageID>) {
+	private addClient(client: SocketClient<DataType, MessageID>) {
 		this._clients[client.id] = client;
 	}
 	private removeClient(id: ClientID) {
@@ -67,7 +67,7 @@ class SocketServer<DataType = unknown, MessageID extends string = string> {
 			}
 		},
 		open: async (socket) => {
-			const client = new SocketClient<ClientData<DataType>, MessageID>(socket, socket.data.id);
+			const client = new SocketClient<DataType, MessageID>(socket, socket.data.id);
 			this.addClient(client);
 			if (this.openListener) this.openListener(client);
 		},
@@ -86,5 +86,3 @@ class SocketServer<DataType = unknown, MessageID extends string = string> {
 		}
 	}
 }
-
-export type ClientData<DataType = unknown> = {id: ClientID; data: DataType};

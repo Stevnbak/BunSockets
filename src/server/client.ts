@@ -3,12 +3,12 @@ import type {ServerWebSocket} from "bun";
 export type ClientID = `${string}-${string}-${string}-${string}-${string}`;
 
 export class SocketClient<DataType, MessageID extends string> {
-	constructor(socket: ServerWebSocket<DataType>, id?: ClientID) {
+	constructor(socket: ServerWebSocket<ClientData<DataType>>, id?: ClientID) {
 		this._id = id ?? crypto.randomUUID();
 		this._socket = socket;
 	}
 	//Socket
-	private _socket: ServerWebSocket<DataType>;
+	private _socket: ServerWebSocket<ClientData<DataType>>;
 	public get socket() {
 		return this._socket;
 	}
@@ -24,6 +24,8 @@ export class SocketClient<DataType, MessageID extends string> {
 	}
 	//Data
 	public get data() {
-		return this.socket.data;
+		return this.socket.data.data;
 	}
 }
+
+export type ClientData<DataType = unknown> = {id: ClientID; data: DataType};
