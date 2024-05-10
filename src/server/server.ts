@@ -14,8 +14,8 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public disconnected(cb: (client?: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
 		this.closeListener = cb;
 	}
-	public on<ID extends MessageID>(id: ID, cb: <ID extends MessageID>(client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void): void {
-		this.listeners.push({id, cb});
+	public on<ID extends MessageID>(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void): void {
+		this.listeners.push({id, cb: (c, m: any) => cb(c, m)});
 	}
 
 	//Clients
