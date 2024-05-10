@@ -1,11 +1,12 @@
 import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
+import type {Type} from "typescript";
 export default <DataType = unknown, MessageID extends string = string>() => {
 	return new SocketServer<DataType, MessageID>();
 };
-class SocketServer<DataType = unknown, MessageID extends string = string> {
+class SocketServer<DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: Type} = {[key in MessageID]: any}> {
 	// Listeners
-	private listeners: {id: "ERROR" | MessageID; cb: (client: SocketClient<DataType, MessageID>, message: unknown) => void}[] = [];
+	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
 	private openListener: ((client: SocketClient<DataType, MessageID>) => void) | undefined;
 	private closeListener: ((client?: SocketClient<DataType, MessageID>) => void) | undefined;
 	public connected(cb: (client: SocketClient<DataType, MessageID>) => void): void {
@@ -14,7 +15,7 @@ class SocketServer<DataType = unknown, MessageID extends string = string> {
 	public disconnected(cb: (client?: SocketClient<DataType, MessageID>) => void): void {
 		this.closeListener = cb;
 	}
-	public on(id: "ERROR" | MessageID, cb: (client: SocketClient<DataType, MessageID>, message: unknown) => void): void {
+	public on<ID extends MessageID | "ERROR">(id: ID, cb: <ID>(client: SocketClient<DataType, MessageID>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void): void {
 		this.listeners.push({id, cb});
 	}
 
@@ -29,7 +30,7 @@ class SocketServer<DataType = unknown, MessageID extends string = string> {
 	private removeClient(id: ClientID) {
 		delete this._clients[id];
 	}
-	public send(clientID: ClientID, messageID: "ERROR" | MessageID, content: unknown) {
+	public send<ID extends MessageID | "ERROR">(clientID: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
 		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
@@ -63,7 +64,7 @@ class SocketServer<DataType = unknown, MessageID extends string = string> {
 			}
 			//Call listener callbacks
 			for (let listener of this.listeners) {
-				if (listener.id == id) listener.cb(client, parsedMsg.data);
+				if (listener.id == id) listener.cb<typeof id>(client, parsedMsg.data as typeof id extends "ERROR" ? string : typeof id extends MessageID ? ContentTypes[typeof id] : any);
 			}
 		},
 		open: async (socket) => {
