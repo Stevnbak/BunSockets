@@ -1,29 +1,29 @@
-import type {WebSocketHandler, ServerWebSocket, Server} from "bun";
+import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientID} from "./client";
 export default <DataType = unknown>() => {
 	return new SocketServer<DataType>();
 };
 class SocketServer<DataType = unknown> {
 	// Listeners
-	private listeners: {id: MessageID; cb: (client: SocketClient, message: unknown) => void}[] = [];
-	private openListener: ((client: SocketClient) => void) | undefined;
-	private closeListener: ((client?: SocketClient) => void) | undefined;
-	public connected(cb: (client: SocketClient) => void): void {
+	private listeners: {id: MessageID; cb: (client: SocketClient<ClientData<DataType>>, message: unknown) => void}[] = [];
+	private openListener: ((client: SocketClient<ClientData<DataType>>) => void) | undefined;
+	private closeListener: ((client?: SocketClient<ClientData<DataType>>) => void) | undefined;
+	public connected(cb: (client: SocketClient<ClientData<DataType>>) => void): void {
 		this.openListener = cb;
 	}
-	public disconnected(cb: (client?: SocketClient) => void): void {
+	public disconnected(cb: (client?: SocketClient<ClientData<DataType>>) => void): void {
 		this.closeListener = cb;
 	}
-	public on(id: MessageID, cb: (client: SocketClient, message: unknown) => void): void {
+	public on(id: MessageID, cb: (client: SocketClient<ClientData<DataType>>, message: unknown) => void): void {
 		this.listeners.push({id, cb});
 	}
 
 	//Clients
-	private _clients: {[key: ClientID]: SocketClient | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient<ClientData<DataType>> | undefined} = {};
 	public get clients() {
 		return this._clients;
 	}
-	private addClient(client: SocketClient) {
+	private addClient(client: SocketClient<ClientData<DataType>>) {
 		this._clients[client.id] = client;
 	}
 	private removeClient(id: ClientID) {
@@ -67,7 +67,7 @@ class SocketServer<DataType = unknown> {
 			}
 		},
 		open: async (socket) => {
-			const client = new SocketClient(socket, socket.data.id);
+			const client = new SocketClient<ClientData<DataType>>(socket, socket.data.id);
 			this.addClient(client);
 			if (this.openListener) this.openListener(client);
 		},
