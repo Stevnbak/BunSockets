@@ -1,10 +1,10 @@
 import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
 import type {Type} from "typescript";
-export default <DataType = unknown, MessageID extends string = string>() => {
-	return new SocketServer<DataType, MessageID>();
+export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: Type} = {[key in MessageID]: any}>() => {
+	return new SocketServer<DataType, MessageID, ContentTypes>();
 };
-class SocketServer<DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: Type} = {[key in MessageID]: any}> {
+class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: Type}> {
 	// Listeners
 	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
 	private openListener: ((client: SocketClient<DataType, MessageID>) => void) | undefined;
