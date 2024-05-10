@@ -1,39 +1,40 @@
 import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
-import type {Type} from "typescript";
-export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: Type} = {[key in MessageID]: any}>() => {
+export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>() => {
 	return new SocketServer<DataType, MessageID, ContentTypes>();
 };
-class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: Type}> {
+class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
 	// Listeners
-	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
-	private openListener: ((client: SocketClient<DataType, MessageID>) => void) | undefined;
-	private closeListener: ((client?: SocketClient<DataType, MessageID>) => void) | undefined;
-	public connected(cb: (client: SocketClient<DataType, MessageID>) => void): void {
+	private listeners: {id: MessageID; cb: <ID extends MessageID>(client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void}[] = [];
+	private openListener: ((client: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
+	private closeListener: ((client?: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
+	public connected(cb: (client: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
 		this.openListener = cb;
 	}
-	public disconnected(cb: (client?: SocketClient<DataType, MessageID>) => void): void {
+	public disconnected(cb: (client?: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
 		this.closeListener = cb;
 	}
-	public on<ID extends MessageID | "ERROR">(id: ID, cb: <ID>(client: SocketClient<DataType, MessageID>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void): void {
+	public on<ID extends MessageID>(id: ID, cb: <ID extends MessageID>(client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void): void {
 		this.listeners.push({id, cb});
 	}
 
 	//Clients
-	private _clients: {[key: ClientID]: SocketClient<DataType, MessageID> | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient<DataType, MessageID, ContentTypes> | undefined} = {};
 	public get clients() {
 		return this._clients;
 	}
-	private addClient(client: SocketClient<DataType, MessageID>) {
+	private addClient(client: SocketClient<DataType, MessageID, ContentTypes>) {
 		this._clients[client.id] = client;
 	}
 	private removeClient(id: ClientID) {
 		delete this._clients[id];
 	}
-	public send<ID extends MessageID | "ERROR">(clientID: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
+	public send(clientId: ClientID, messageID: "ERROR", content: string): void;
+	public send<ID extends MessageID>(clientID: ClientID, messageID: ID, content: ContentTypes[ID]): void;
+	public send(clientID: ClientID, messageID: string, content: any) {
 		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
-		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
+		const message = `${JSON.stringify({id: messageID, data: content})}`;
 		client.socket.send(message);
 	}
 
@@ -44,7 +45,7 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 			const id = msg
 				.match(/ID\(.*\)/)?.[0]
 				.replace("ID(", "")
-				.replace(")", "") as "ERROR" | MessageID | undefined;
+				.replace(")", "") as MessageID | undefined;
 			let parsedMsg: {data: unknown};
 			try {
 				parsedMsg = JSON.parse(msg.replace(`ID(${id})|`, ""));
@@ -64,11 +65,11 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 			}
 			//Call listener callbacks
 			for (let listener of this.listeners) {
-				if (listener.id == id) listener.cb<typeof id>(client, parsedMsg.data as typeof id extends "ERROR" ? string : typeof id extends MessageID ? ContentTypes[typeof id] : any);
+				if (listener.id == id) listener.cb<typeof id>(client, parsedMsg.data as typeof id extends MessageID ? ContentTypes[typeof id] : any);
 			}
 		},
 		open: async (socket) => {
-			const client = new SocketClient<DataType, MessageID>(socket, socket.data.id);
+			const client = new SocketClient<DataType, MessageID, ContentTypes>(socket, socket.data.id);
 			this.addClient(client);
 			if (this.openListener) this.openListener(client);
 		},

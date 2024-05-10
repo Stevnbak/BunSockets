@@ -4,7 +4,7 @@ import {server, client} from "../src";
 import {describe, it, expect, beforeAll, afterAll} from "bun:test";
 describe("WebSockets", () => {
 	it("test message", async () => {
-		const socketServer = server();
+		const socketServer = server<unknown, string>();
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
@@ -18,6 +18,7 @@ describe("WebSockets", () => {
 		socketServer.on("TEST", (client, message) => {
 			console.log("Server: Test message recieved.");
 			client.send("TEST", message);
+			socketServer.send(client.id, "TEST", null);
 		});
 		try {
 			expect(

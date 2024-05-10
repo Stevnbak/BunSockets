@@ -2,7 +2,7 @@ import type {ServerWebSocket} from "bun";
 
 export type ClientID = `${string}-${string}-${string}-${string}-${string}`;
 
-export class SocketClient<DataType, MessageID extends string> {
+export class SocketClient<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
 	constructor(socket: ServerWebSocket<ClientData<DataType>>, id?: ClientID) {
 		this._id = id ?? crypto.randomUUID();
 		this._socket = socket;
@@ -18,7 +18,9 @@ export class SocketClient<DataType, MessageID extends string> {
 		return this._id;
 	}
 	//Send
-	public send(messageID: MessageID, content: unknown) {
+	public send<ID extends MessageID>(messageID: ID, content: ContentTypes[ID]): void;
+	public send(messageID: "ERROR", content: string): void;
+	public send(messageID: string, content: any) {
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
 		this.socket.send(message);
 	}
