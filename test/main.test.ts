@@ -4,7 +4,7 @@ import {server, client} from "../src";
 import {describe, it, expect, beforeAll, afterAll} from "bun:test";
 describe("WebSockets", () => {
 	it("test message", async () => {
-		const socketServer = server<unknown, string>();
+		const socketServer = server<unknown, "TEST", {TEST: string}>();
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
@@ -18,12 +18,11 @@ describe("WebSockets", () => {
 		socketServer.on("TEST", (client, message) => {
 			console.log("Server: Test message recieved.");
 			client.send("TEST", message);
-			socketServer.send(client.id, "TEST", null);
 		});
 		try {
 			expect(
 				await new Promise<string | undefined>((resolve) => {
-					const socketClient = client("ws://localhost:3000", {
+					const socketClient = client<"TEST", {TEST: string}>("ws://localhost:3000", {
 						open: () => {
 							console.log("Connection created!");
 							socketClient.send("TEST", "test");
@@ -39,7 +38,7 @@ describe("WebSockets", () => {
 					});
 					socketClient.on("TEST", (msg) => {
 						console.log("Client: Test message recieved.");
-						resolve(msg as string);
+						resolve(msg);
 					});
 				})
 			).toMatch("test");

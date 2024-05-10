@@ -5,7 +5,7 @@ export default <DataType = unknown, MessageID extends string = string, ContentTy
 };
 class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
 	// Listeners
-	private listeners: {id: MessageID; cb: <ID extends MessageID>(client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void}[] = [];
+	private listeners: {id: MessageID | "ERROR"; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
 	private openListener: ((client: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
 	private closeListener: ((client?: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
 	public connected(cb: (client: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
@@ -14,7 +14,7 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public disconnected(cb: (client?: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
 		this.closeListener = cb;
 	}
-	public on<ID extends MessageID>(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ContentTypes[ID]) => void): void {
+	public on<ID extends MessageID | "ERROR">(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void): void {
 		this.listeners.push({id, cb: (c, m: any) => cb(c, m)});
 	}
 
@@ -29,9 +29,7 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	private removeClient(id: ClientID) {
 		delete this._clients[id];
 	}
-	public send(clientId: ClientID, messageID: "ERROR", content: string): void;
-	public send<ID extends MessageID>(clientID: ClientID, messageID: ID, content: ContentTypes[ID]): void;
-	public send(clientID: ClientID, messageID: string, content: any) {
+	public send<ID extends MessageID | "ERROR">(clientID: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
 		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
 		const message = `${JSON.stringify({id: messageID, data: content})}`;
@@ -41,6 +39,7 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	// Bun handler
 	public handler: WebSocketHandler<ClientData<DataType>> = {
 		message: (socket, msg: string) => {
+			console.log(msg);
 			//Parse message
 			let parsedMsg: {id: MessageID; data: unknown};
 			try {
