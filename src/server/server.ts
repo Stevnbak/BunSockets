@@ -1,7 +1,7 @@
 import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientID} from "./client";
-export default <DataType = unknown>() => {
-	return new SocketServer<DataType>();
+export default <DataType = unknown, MessageID extends string = string>() => {
+	return new SocketServer<DataType, MessageID>();
 };
 class SocketServer<DataType = unknown, MessageID extends string = string> {
 	// Listeners
