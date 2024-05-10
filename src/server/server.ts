@@ -4,22 +4,33 @@ export default <DataType = unknown>() => {
 	return new SocketServer<DataType>();
 };
 class SocketServer<DataType = unknown> {
-	// Listener
+	// Listeners
 	private listeners: {id: MessageID; cb: (client: SocketClient, message: unknown) => void}[] = [];
-	public on(id: MessageID, cb: (client: SocketClient, message: unknown) => void) {
+	private openListener: ((client: SocketClient) => void) | undefined;
+	private closeListener: ((client?: SocketClient) => void) | undefined;
+	public connected(cb: (client: SocketClient) => void): void {
+		this.openListener = cb;
+	}
+	public disconnected(cb: (client?: SocketClient) => void): void {
+		this.closeListener = cb;
+	}
+	public on(id: MessageID, cb: (client: SocketClient, message: unknown) => void): void {
 		this.listeners.push({id, cb});
 	}
 
 	//Clients
-	public clients: {[key: ClientID]: SocketClient | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient | undefined} = {};
+	public get clients() {
+		return this._clients;
+	}
 	private addClient(client: SocketClient) {
-		this.clients[client.id] = client;
+		this._clients[client.id] = client;
 	}
 	private removeClient(id: ClientID) {
-		delete this.clients[id];
+		delete this._clients[id];
 	}
 	public send(clientID: ClientID, messageID: MessageID, content: unknown) {
-		let client = this.clients[clientID];
+		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
 		client.socket.send(message);
@@ -41,7 +52,7 @@ class SocketServer<DataType = unknown> {
 				return;
 			}
 			//Find client
-			const client = this.clients[socket.data.id];
+			const client = this._clients[socket.data.id];
 			if (!client) {
 				this.send(socket.data.id, "ERROR", "Client doesn't exist, please reconnect.");
 				return;
@@ -58,9 +69,12 @@ class SocketServer<DataType = unknown> {
 		open: async (socket) => {
 			const client = new SocketClient(socket, socket.data.id);
 			this.addClient(client);
+			if (this.openListener) this.openListener(client);
 		},
 		close: (socket) => {
+			const client = this._clients[socket.data.id];
 			this.removeClient(socket.data.id);
+			if (this.closeListener) this.closeListener(client);
 		}
 	};
 	// Bun upgrade
