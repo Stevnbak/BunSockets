@@ -1,9 +1,8 @@
 import type {ServerWebSocket} from "bun";
-import type {MessageID} from "./server";
 
 export type ClientID = `${string}-${string}-${string}-${string}-${string}`;
 
-export class SocketClient<DataType = unknown> {
+export class SocketClient<DataType, MessageID extends string> {
 	constructor(socket: ServerWebSocket<DataType>, id?: ClientID) {
 		this._id = id ?? crypto.randomUUID();
 		this._socket = socket;

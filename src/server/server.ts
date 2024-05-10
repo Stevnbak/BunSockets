@@ -3,33 +3,33 @@ import {SocketClient, type ClientID} from "./client";
 export default <DataType = unknown>() => {
 	return new SocketServer<DataType>();
 };
-class SocketServer<DataType = unknown> {
+class SocketServer<DataType = unknown, MessageID extends string = string> {
 	// Listeners
-	private listeners: {id: MessageID; cb: (client: SocketClient<ClientData<DataType>>, message: unknown) => void}[] = [];
-	private openListener: ((client: SocketClient<ClientData<DataType>>) => void) | undefined;
-	private closeListener: ((client?: SocketClient<ClientData<DataType>>) => void) | undefined;
-	public connected(cb: (client: SocketClient<ClientData<DataType>>) => void): void {
+	private listeners: {id: "ERROR" | MessageID; cb: (client: SocketClient<ClientData<DataType>, MessageID>, message: unknown) => void}[] = [];
+	private openListener: ((client: SocketClient<ClientData<DataType>, MessageID>) => void) | undefined;
+	private closeListener: ((client?: SocketClient<ClientData<DataType>, MessageID>) => void) | undefined;
+	public connected(cb: (client: SocketClient<ClientData<DataType>, MessageID>) => void): void {
 		this.openListener = cb;
 	}
-	public disconnected(cb: (client?: SocketClient<ClientData<DataType>>) => void): void {
+	public disconnected(cb: (client?: SocketClient<ClientData<DataType>, MessageID>) => void): void {
 		this.closeListener = cb;
 	}
-	public on(id: MessageID, cb: (client: SocketClient<ClientData<DataType>>, message: unknown) => void): void {
+	public on(id: "ERROR" | MessageID, cb: (client: SocketClient<ClientData<DataType>, MessageID>, message: unknown) => void): void {
 		this.listeners.push({id, cb});
 	}
 
 	//Clients
-	private _clients: {[key: ClientID]: SocketClient<ClientData<DataType>> | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient<ClientData<DataType>, MessageID> | undefined} = {};
 	public get clients() {
 		return this._clients;
 	}
-	private addClient(client: SocketClient<ClientData<DataType>>) {
+	private addClient(client: SocketClient<ClientData<DataType>, MessageID>) {
 		this._clients[client.id] = client;
 	}
 	private removeClient(id: ClientID) {
 		delete this._clients[id];
 	}
-	public send(clientID: ClientID, messageID: MessageID, content: unknown) {
+	public send(clientID: ClientID, messageID: "ERROR" | MessageID, content: unknown) {
 		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
@@ -40,10 +40,10 @@ class SocketServer<DataType = unknown> {
 	public handler: WebSocketHandler<ClientData<DataType>> = {
 		message: (socket, msg: string) => {
 			//Parse message
-			const id: MessageID | undefined = msg
+			const id = msg
 				.match(/ID\(.*\)/)?.[0]
 				.replace("ID(", "")
-				.replace(")", "");
+				.replace(")", "") as "ERROR" | MessageID | undefined;
 			let parsedMsg: {data: unknown};
 			try {
 				parsedMsg = JSON.parse(msg.replace(`ID(${id})|`, ""));
@@ -67,7 +67,7 @@ class SocketServer<DataType = unknown> {
 			}
 		},
 		open: async (socket) => {
-			const client = new SocketClient<ClientData<DataType>>(socket, socket.data.id);
+			const client = new SocketClient<ClientData<DataType>, MessageID>(socket, socket.data.id);
 			this.addClient(client);
 			if (this.openListener) this.openListener(client);
 		},
@@ -87,5 +87,4 @@ class SocketServer<DataType = unknown> {
 	}
 }
 
-export type MessageID = "ERROR" | string;
 export type ClientData<DataType = unknown> = {id: ClientID; data: DataType};

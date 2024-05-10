@@ -54,4 +54,4 @@ class Socket {
 	}
 }
 
-export type MessageID = string;
+import type {MessageID} from "../types";
