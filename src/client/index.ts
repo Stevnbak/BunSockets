@@ -1,16 +1,16 @@
 export default (url: string, handlers?: {open?: () => void; close?: (code: number, reason: string) => void; error?: (error: string) => void}) => {
 	return new Socket(url, handlers);
 };
-class Socket {
+class Socket<MessageID extends string = string> {
 	private socket: WebSocket;
 	// Listener
-	private listeners: {id: MessageID; cb: (message: unknown) => void}[] = [];
+	private listeners: {id: "ERROR" | MessageID; cb: (message: unknown) => void}[] = [];
 	public on(id: MessageID, cb: (message: unknown) => void) {
 		this.listeners.push({id, cb});
 	}
 
 	//Send message
-	public send(messageID: MessageID, content: unknown) {
+	public send(messageID: "ERROR" | MessageID, content: unknown) {
 		const message = `ID(${messageID})|${JSON.stringify({data: content})}`;
 		this.socket.send(message);
 	}
@@ -22,10 +22,10 @@ class Socket {
 		this.socket.addEventListener("message", (event) => {
 			//Parse message
 			const msg = event.data.toString();
-			const id: MessageID | undefined = msg
+			const id = msg
 				.match(/ID\(.*\)/)?.[0]
 				.replace("ID(", "")
-				.replace(")", "");
+				.replace(")", "") as "ERROR" | MessageID | undefined;
 			let parsedMsg: {data: unknown};
 			try {
 				parsedMsg = JSON.parse(msg.replace(`ID(${id})|`, ""));
@@ -53,5 +53,3 @@ class Socket {
 		});
 	}
 }
-
-import type {MessageID} from "../types";
