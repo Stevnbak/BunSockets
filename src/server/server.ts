@@ -39,19 +39,15 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	// Bun handler
 	public handler: WebSocketHandler<ClientData<DataType>> = {
 		message: (socket, msg: string) => {
-			console.log(msg);
+			//Find client
+			const client = this._clients[socket.data.id];
+			if (!client) return;
 			//Parse message
 			let parsedMsg: {id: MessageID; data: unknown};
 			try {
 				parsedMsg = JSON.parse(msg);
 			} catch {
 				this.send(socket.data.id, "ERROR", "Unrecognized message format.");
-				return;
-			}
-			//Find client
-			const client = this._clients[socket.data.id];
-			if (!client) {
-				this.send(socket.data.id, "ERROR", "Client doesn't exist, please reconnect.");
 				return;
 			}
 			//Error?

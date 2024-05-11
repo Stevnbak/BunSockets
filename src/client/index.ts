@@ -10,7 +10,7 @@ export class Socket<MessageID extends string, ContentTypes extends {[key in Mess
 	}
 
 	//Send message
-	public send<ID extends MessageID | "ERROR">(messageID: "ERROR" | MessageID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
+	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
 		const message = JSON.stringify({id: messageID, data: content});
 		this.socket.send(message);
 	}
