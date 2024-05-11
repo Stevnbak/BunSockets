@@ -1,4 +1,5 @@
-import {server, client} from "../src";
+import client from "../client";
+import server from "../server";
 
 //Create tests
 import {describe, it, expect, beforeAll, afterAll} from "bun:test";

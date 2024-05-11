@@ -1,7 +1,7 @@
 export default <MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(url: string, handlers?: {open?: () => void; close?: (code: number, reason: string) => void; error?: (error: string) => void}) => {
 	return new Socket<MessageID, ContentTypes>(url, handlers);
 };
-class Socket<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
+export class Socket<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
 	private socket: WebSocket;
 	// Listener
 	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
