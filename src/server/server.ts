@@ -40,8 +40,13 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public handler: WebSocketHandler<ClientData<DataType>> = {
 		message: (socket, msg: string) => {
 			//Find client
-			const client = this._clients[socket.data.id];
-			if (!client) return;
+			let client = this._clients[socket.data.id];
+			if (!client) {
+				//Recreate client
+				client = new SocketClient<DataType, MessageID, ContentTypes>(socket, socket.data.id);
+				this.addClient(client);
+				if (this.openListener) this.openListener(client);
+			}
 			//Parse message
 			let parsedMsg: {id: MessageID; data: unknown};
 			try {
