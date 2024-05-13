@@ -1,4 +1,5 @@
 import type {ServerWebSocket} from "bun";
+import {encodeMessage} from "../shared";
 
 export type ClientID = `${string}-${string}-${string}-${string}-${string}`;
 
@@ -19,7 +20,7 @@ export class SocketClient<DataType, MessageID extends string, ContentTypes exten
 	}
 	//Send
 	public send<ID extends MessageID | "ERROR">(messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
-		const message = JSON.stringify({id: messageID, data: content});
+		const message = encodeMessage(messageID, content);
 		this.socket.send(message);
 	}
 	//Data

@@ -1,3 +1,5 @@
+import {decodeMessage, encodeMessage} from "../shared";
+
 export default <MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(url: string, handlers?: {open?: () => void; close?: (code: number, reason: string) => void; error?: (error: string) => void}) => {
 	return new Socket<MessageID, ContentTypes>(url, handlers);
 };
@@ -11,7 +13,7 @@ export class Socket<MessageID extends string, ContentTypes extends {[key in Mess
 
 	//Send message
 	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
-		const message = JSON.stringify({id: messageID, data: content});
+		const message = encodeMessage(messageID, content);
 		this.socket.send(message);
 	}
 
@@ -21,14 +23,8 @@ export class Socket<MessageID extends string, ContentTypes extends {[key in Mess
 		// message is received
 		this.socket.addEventListener("message", (event) => {
 			//Parse message
-			const msg = event.data.toString();
-			let parsedMsg: {id: MessageID; data: any};
-			try {
-				parsedMsg = JSON.parse(msg);
-			} catch {
-				this.send("ERROR", "Unrecognized message format.");
-				return;
-			}
+			let parsedMsg = decodeMessage(event.data.toString());
+			if (!parsedMsg) return this.send("ERROR", "Unrecognized message format.");
 			//Call listener callbacks
 			for (let listener of this.listeners) {
 				if (listener.id == parsedMsg.id) listener.cb(parsedMsg.data);

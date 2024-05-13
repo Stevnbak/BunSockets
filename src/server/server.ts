@@ -1,5 +1,6 @@
 import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
+import {decodeMessage, encodeMessage} from "../shared";
 export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>() => {
 	return new SocketServer<DataType, MessageID, ContentTypes>();
 };
@@ -32,7 +33,7 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public send<ID extends MessageID | "ERROR">(clientID: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
 		let client = this._clients[clientID];
 		if (!client) throw new Error("No client exists with that ID.");
-		const message = `${JSON.stringify({id: messageID, data: content})}`;
+		const message = encodeMessage(messageID, content);
 		client.socket.send(message);
 	}
 
@@ -48,17 +49,10 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 				if (this.openListener) this.openListener(client);
 			}
 			//Parse message
-			let parsedMsg: {id: MessageID; data: unknown};
-			try {
-				parsedMsg = JSON.parse(msg);
-			} catch {
-				this.send(socket.data.id, "ERROR", "Unrecognized message format.");
-				return;
-			}
+			let parsedMsg = decodeMessage(msg);
+			if (!parsedMsg) return this.send(socket.data.id, "ERROR", "Unrecognized message format.");
 			//Error?
-			if (parsedMsg.id == "ERROR") {
-				console.error(`Client(${client.id}) send an error message: \"${parsedMsg.data}\"`);
-			}
+			if (parsedMsg.id == "ERROR") console.error(`Client(${client.id}) send an error message: \"${parsedMsg.data}\"`);
 			//Call listener callbacks
 			for (let listener of this.listeners) {
 				if (listener.id == parsedMsg.id) listener.cb<typeof parsedMsg.id>(client, parsedMsg.data as typeof parsedMsg.id extends MessageID ? ContentTypes[typeof parsedMsg.id] : any);
