@@ -15,6 +15,9 @@ describe("Encoding & Decoding", () => {
 	it("object", () => {
 		test({key: "Value", number: 2, again: ["1", 2, 3]});
 	});
+	it("undefined", () => {
+		test(undefined);
+	});
 });
 
 function test(value: any) {

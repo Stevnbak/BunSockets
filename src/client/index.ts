@@ -1,6 +1,6 @@
 import {decodeMessage, encodeMessage} from "../shared";
 
-export default <MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(url: string, handlers?: {open?: () => void; close?: (code: number, reason: string) => void; error?: (error: string) => void}) => {
+export default <MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(url: string, handlers?: handlers<MessageID, ContentTypes>) => {
 	return new Socket<MessageID, ContentTypes>(url, handlers);
 };
 export class Socket<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
@@ -18,7 +18,7 @@ export class Socket<MessageID extends string, ContentTypes extends {[key in Mess
 	}
 
 	//Main
-	constructor(url: string, handlers?: {open?: () => void; close?: (code: number, reason: string) => void; error?: (error: string) => void}) {
+	constructor(url: string, handlers?: handlers<MessageID, ContentTypes>) {
 		this.socket = new WebSocket(url);
 		// message is received
 		this.socket.addEventListener("message", (event) => {
@@ -32,18 +32,23 @@ export class Socket<MessageID extends string, ContentTypes extends {[key in Mess
 		});
 		// socket opened
 		this.socket.addEventListener("open", (event) => {
-			if (handlers?.open != undefined) handlers.open();
+			if (handlers?.open != undefined) handlers.open(this);
 		});
 		// socket closed
 		this.socket.addEventListener("close", (event) => {
-			if (handlers?.close) handlers.close(event.code, event.reason);
+			if (handlers?.close) handlers.close(this, event.code, event.reason);
 		});
 		// error handler
 		this.socket.addEventListener("error", (event) => {
-			if (handlers?.error) handlers.error(event.message);
+			if (handlers?.error) handlers.error(this, event.message);
 		});
 		this.on("ERROR", (msg) => {
-			if (handlers?.error) handlers.error(msg);
+			if (handlers?.error) handlers.error(this, msg);
 		});
 	}
 }
+type handlers<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> = {
+	open?: (current: Socket<MessageID, ContentTypes>) => void;
+	close?: (current: Socket<MessageID, ContentTypes>, code: number, reason: string) => void;
+	error?: (current: Socket<MessageID, ContentTypes>, error: string) => void;
+};
