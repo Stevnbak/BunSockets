@@ -6,11 +6,11 @@ import {describe, it, expect, beforeAll, afterAll} from "bun:test";
 import type {RoomID, SocketRoom} from "./server/rooms";
 describe("WebSockets", () => {
 	it("test message", async () => {
-		const socketServer = server<unknown, "TEST", {TEST: string}>();
+		const socketServer = server<undefined, "TEST", {TEST: string}>();
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
-				if (socketServer.connect(req, server, undefined)) {
+				if (socketServer.upgrade(req, server, undefined)) {
 					return;
 				}
 				return new Response("Non WebSocket connection");
@@ -51,11 +51,11 @@ describe("WebSockets", () => {
 		}
 	});
 	it("multiple clients", async () => {
-		const socketServer = server<unknown, "TEST" | "ROOM" | "ALL", {TEST: number; ROOM: number; ALL: undefined}>();
+		const socketServer = server<undefined, "TEST" | "ROOM" | "ALL", {TEST: number; ROOM: number; ALL: undefined}>({perMessageDeflate: {compress: true, decompress: true}});
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
-				if (socketServer.connect(req, server, undefined)) {
+				if (socketServer.upgrade(req, server, undefined)) {
 					return;
 				}
 				return new Response("Non WebSocket connection");

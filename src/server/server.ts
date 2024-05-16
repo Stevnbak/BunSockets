@@ -2,10 +2,15 @@ import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
 import {decodeMessage, encodeMessage} from "../shared";
 import {SocketRoom, type RoomID} from "./rooms";
-export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>() => {
-	return new SocketServer<DataType, MessageID, ContentTypes>();
+export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(options: SocketOptions = {}) => {
+	return new SocketServer<DataType, MessageID, ContentTypes>(options);
 };
 class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
+	//Options
+	private options: SocketOptions = {};
+	public constructor(options: SocketOptions) {
+		this.options = options;
+	}
 	// Listeners
 	private listeners: {id: MessageID | "ERROR"; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
 	private openListener: ((client: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
@@ -29,9 +34,10 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	}
 	public broadcast<ID extends MessageID | "ERROR">(roomId: RoomID | "all", messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
 		if (roomId == "all") {
-			for (let client of Object.values(this._clients)) {
-				client?.send(messageID, content);
-			}
+			const message = encodeMessage(messageID, content);
+			const useClient = Object.values(this._clients)[0];
+			useClient.socket.publish("all", message);
+			useClient.socket.send(message);
 		} else {
 			let room = this._rooms[roomId];
 			if (!room) throw new Error("No room exists with that ID.");
@@ -40,12 +46,13 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	}
 
 	//Clients
-	private _clients: {[key: ClientID]: SocketClient<DataType, MessageID, ContentTypes> | undefined} = {};
+	private _clients: {[key: ClientID]: SocketClient<DataType, MessageID, ContentTypes>} = {};
 	public get clients() {
 		return this._clients;
 	}
 	private addClient(client: SocketClient<DataType, MessageID, ContentTypes>) {
 		this._clients[client.id] = client;
+		client.socket.subscribe("all");
 	}
 	private removeClient(id: ClientID) {
 		delete this._clients[id];
@@ -100,10 +107,12 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 			const client = this._clients[socket.data.id];
 			this.removeClient(socket.data.id);
 			if (this.closeListener) this.closeListener(client);
-		}
+		},
+		sendPings: false,
+		...this.options
 	};
 	// Bun upgrade
-	public connect(req: Request, server: Server, data: DataType) {
+	public upgrade(req: Request, server: Server, data: DataType) {
 		if (server?.upgrade<ClientData<DataType>>(req, {data: {id: crypto.randomUUID(), data}})) {
 			return true;
 		} else {
@@ -111,3 +120,5 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 		}
 	}
 }
+
+export type SocketOptions = Omit<WebSocketHandler, "message" | "open" | "close" | "drain" | "ping" | "pong" | "sendPings">;

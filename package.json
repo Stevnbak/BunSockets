@@ -1,15 +1,15 @@
 {
-  "name": "bunsockets",
-  "description": "A websocket server & client using the bun websocket server.",
-  "module": "index.ts",
-  "type": "module",
-  "scripts": {
-    "test": "bun test"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  }
+	"name": "bunsockets",
+	"description": "A websocket server & client using the bun websocket server.",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
 }
