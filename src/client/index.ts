@@ -1,18 +1,18 @@
 import {decodeMessage, encodeMessage} from "../shared";
 
-export default <MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(url: string, handlers?: handlers<MessageID, ContentTypes>) => {
+export default <MessageID extends string = string, ContentTypes extends Partial<{[key in MessageID]: any}> = {[key in MessageID]: any}>(url: string, handlers?: handlers<MessageID, ContentTypes>) => {
 	return new Socket<MessageID, ContentTypes>(url, handlers);
 };
-export class Socket<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
+export class Socket<MessageID extends string, ContentTypes extends Partial<{[key in MessageID]: any}>> {
 	private socket: WebSocket;
 	// Listener
-	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
-	public on<ID extends MessageID | "ERROR">(id: ID, cb: (message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void): void {
+	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void}[] = [];
+	public on<ID extends MessageID | "ERROR">(id: ID, cb: (message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
 		this.listeners.push({id, cb: (m: any) => cb(m)});
 	}
 
 	//Send message
-	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) {
+	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) {
 		const message = encodeMessage(messageID, content);
 		this.socket.send(message);
 	}

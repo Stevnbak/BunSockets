@@ -19,7 +19,7 @@ export class SocketClient<DataType, MessageID extends string, ContentTypes exten
 		return this._id;
 	}
 	//Send
-	public send<ID extends MessageID | "ERROR">(messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
+	public send<ID extends MessageID | "ERROR">(messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any): void {
 		const message = encodeMessage(messageID, content);
 		this.socket.send(message);
 	}

@@ -2,17 +2,17 @@ import type {WebSocketHandler, Server} from "bun";
 import {SocketClient, type ClientData, type ClientID} from "./client";
 import {decodeMessage, encodeMessage} from "../shared";
 import {SocketRoom, type RoomID} from "./rooms";
-export default <DataType = unknown, MessageID extends string = string, ContentTypes extends {[key in MessageID]: any} = {[key in MessageID]: any}>(options: SocketOptions = {}) => {
+export default <MessageID extends string = string, ContentTypes extends Partial<{[key in MessageID]: any}> = {[key in MessageID]: any}, DataType = unknown>(options: SocketOptions = {}) => {
 	return new SocketServer<DataType, MessageID, ContentTypes>(options);
 };
-class SocketServer<DataType, MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
+class SocketServer<DataType, MessageID extends string, ContentTypes extends Partial<{[key in MessageID]: any}>> {
 	//Options
 	private options: SocketOptions = {};
 	public constructor(options: SocketOptions) {
 		this.options = options;
 	}
 	// Listeners
-	private listeners: {id: MessageID | "ERROR"; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void}[] = [];
+	private listeners: {id: MessageID | "ERROR"; cb: <ID extends MessageID | "ERROR">(client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void}[] = [];
 	private openListener: ((client: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
 	private closeListener: ((client?: SocketClient<DataType, MessageID, ContentTypes>) => void) | undefined;
 	public connected(cb: (client: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
@@ -21,18 +21,18 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends {[ke
 	public disconnected(cb: (client?: SocketClient<DataType, MessageID, ContentTypes>) => void): void {
 		this.closeListener = cb;
 	}
-	public on<ID extends MessageID | "ERROR">(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown) => void): void {
+	public on<ID extends MessageID | "ERROR">(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
 		this.listeners.push({id, cb: (c, m: any) => cb(c, m)});
 	}
 
 	//Send messages
-	public send<ID extends MessageID | "ERROR">(roomOrClient: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
+	public send<ID extends MessageID | "ERROR">(roomOrClient: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any): void {
 		let client = this._clients[roomOrClient];
 		if (!client) throw new Error("No client exists with that ID.");
 		const message = encodeMessage(messageID, content);
 		client.socket.send(message);
 	}
-	public broadcast<ID extends MessageID | "ERROR">(roomId: RoomID | "all", messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : unknown): void {
+	public broadcast<ID extends MessageID | "ERROR">(roomId: RoomID | "all", messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any): void {
 		if (roomId == "all") {
 			const message = encodeMessage(messageID, content);
 			const useClient = Object.values(this._clients)[0];

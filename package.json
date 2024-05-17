@@ -1,11 +1,30 @@
 {
 	"name": "bunsockets",
-	"description": "A websocket server & client using the bun websocket server.",
-	"module": "index.ts",
+	"version": "1.0.0",
+	"description": "An API for use with the bun websocket server.",
+	"main": "index.ts",
 	"type": "module",
 	"scripts": {
 		"test": "bun test"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Stevnbak/BunSockets.git"
+	},
+	"keywords": [
+		"bun",
+		"sockets",
+		"websockets",
+		"ws",
+		"websocket",
+		"server"
+	],
+	"author": "Stevnbak",
+	"license": "MPL-2.0",
+	"bugs": {
+		"url": "https://github.com/Stevnbak/BunSockets/issues"
+	},
+	"homepage": "https://github.com/Stevnbak/BunSockets#readme",
 	"dependencies": {
 		"@types/bun": "latest"
 	},
