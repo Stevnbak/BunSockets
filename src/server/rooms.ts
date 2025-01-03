@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {encodeMessage} from "../shared";
 import type {SocketClient} from "./client";
 
@@ -6,7 +7,6 @@ export type RoomID = `${string}-${string}-${string}-${string}-${string}`;
 export class SocketRoom<MessageID extends string, ContentTypes extends {[key in MessageID]: any}> {
 	constructor(members: SocketClient<any, MessageID, ContentTypes>[]) {
 		this._id = crypto.randomUUID();
-		if (members.length == 0) throw new Error("A room requires at least one member.");
 		for (let member of members) {
 			this.addMember(member);
 		}
@@ -30,7 +30,9 @@ export class SocketRoom<MessageID extends string, ContentTypes extends {[key in 
 	//Send
 	public send<ID extends MessageID | "ERROR">(messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any): void {
 		const message = encodeMessage(messageID, content);
-		this.members[0].socket.publish(this._id, message);
-		this.members[0].socket.send(message);
+		if (this.members.length > 0) {
+			this.members[0].socket.publish(this._id, message);
+			this.members[0].socket.send(message);
+		}
 	}
 }

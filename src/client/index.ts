@@ -4,7 +4,7 @@ export default <MessageID extends string = string, ContentTypes extends Partial<
 	return new Socket<MessageID, ContentTypes>(url, handlers);
 };
 export class Socket<MessageID extends string, ContentTypes extends Partial<{[key in MessageID]: any}>> {
-	private socket: WebSocket;
+	public websocket: WebSocket;
 	// Listener
 	private listeners: {id: "ERROR" | MessageID; cb: <ID extends MessageID | "ERROR">(message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void}[] = [];
 	public on<ID extends MessageID | "ERROR">(id: ID, cb: (message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
@@ -14,14 +14,14 @@ export class Socket<MessageID extends string, ContentTypes extends Partial<{[key
 	//Send message
 	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) {
 		const message = encodeMessage(messageID, content);
-		this.socket.send(message);
+		this.websocket.send(message);
 	}
 
 	//Main
 	constructor(url: string, handlers?: handlers<MessageID, ContentTypes>) {
-		this.socket = new WebSocket(url);
+		this.websocket = new WebSocket(url);
 		// message is received
-		this.socket.addEventListener("message", (event) => {
+		this.websocket.addEventListener("message", (event) => {
 			//Parse message
 			let parsedMsg = decodeMessage(event.data.toString());
 			if (!parsedMsg) return this.send("ERROR", "Unrecognized message format.");
@@ -31,15 +31,15 @@ export class Socket<MessageID extends string, ContentTypes extends Partial<{[key
 			}
 		});
 		// socket opened
-		this.socket.addEventListener("open", (event) => {
+		this.websocket.addEventListener("open", (event) => {
 			if (handlers?.open != undefined) handlers.open(this);
 		});
 		// socket closed
-		this.socket.addEventListener("close", (event) => {
+		this.websocket.addEventListener("close", (event) => {
 			if (handlers?.close) handlers.close(this, event.code, event.reason);
 		});
 		// error handler
-		this.socket.addEventListener("error", (event) => {
+		this.websocket.addEventListener("error", (event) => {
 			if (handlers?.error) handlers.error(this, event.message);
 		});
 		this.on("ERROR", (msg) => {

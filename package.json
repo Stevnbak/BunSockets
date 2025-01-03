@@ -1,6 +1,6 @@
 {
 	"name": "bunsockets",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "An API for use with the bun websocket server.",
 	"main": "index.ts",
 	"type": "module",
@@ -26,7 +26,8 @@
 	},
 	"homepage": "https://github.com/Stevnbak/BunSockets#readme",
 	"dependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"crypto": "^1.0.1"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
