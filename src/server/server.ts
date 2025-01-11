@@ -24,6 +24,9 @@ class SocketServer<DataType, MessageID extends string, ContentTypes extends Part
 	public on<ID extends MessageID | "ERROR">(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
 		this.listeners.push({id, cb: (c, m: any) => cb(c, m)});
 	}
+	public off<ID extends MessageID | "ERROR">(id: ID, cb: (client: SocketClient<DataType, MessageID, ContentTypes>, message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
+		this.listeners = this.listeners.filter((a) => a.id != id && a.cb != ((c: SocketClient<DataType, MessageID, ContentTypes>, m: any) => cb(c, m)));
+	}
 
 	//Send messages
 	public send<ID extends MessageID | "ERROR">(roomOrClient: ClientID, messageID: ID, content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any): void {

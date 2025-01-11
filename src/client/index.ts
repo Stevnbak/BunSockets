@@ -10,6 +10,9 @@ export class Socket<MessageID extends string, ContentTypes extends Partial<{[key
 	public on<ID extends MessageID | "ERROR">(id: ID, cb: (message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
 		this.listeners.push({id, cb: (m: any) => cb(m)});
 	}
+	public off<ID extends MessageID | "ERROR">(id: ID, cb: (message: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) => void): void {
+		this.listeners = this.listeners.filter((a) => a.id != id && a.cb != ((m: any) => cb(m)));
+	}
 
 	//Send message
 	public send<ID extends MessageID | "ERROR">(messageID: ID | "ERROR", content: ID extends "ERROR" ? string : ID extends MessageID ? ContentTypes[ID] : any) {

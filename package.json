@@ -1,6 +1,6 @@
 {
 	"name": "bunsockets",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "An API for use with the bun websocket server.",
 	"main": "index.ts",
 	"type": "module",

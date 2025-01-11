@@ -6,7 +6,7 @@ import {describe, it, expect, beforeAll, afterAll} from "bun:test";
 import type {RoomID, SocketRoom} from "./server/rooms";
 describe("WebSockets", () => {
 	it("test message", async () => {
-		const socketServer = server<undefined, "TEST", {TEST: string}>();
+		const socketServer = server<"TEST", {TEST: string}>();
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
@@ -50,8 +50,58 @@ describe("WebSockets", () => {
 			bunServer.stop();
 		}
 	});
+	it("remove listeners", async () => {
+		const socketServer = server<"TEST", {TEST: string}>();
+		const bunServer = Bun.serve({
+			port: 3000,
+			fetch(req, server) {
+				if (socketServer.upgrade(req, server, undefined)) {
+					return;
+				}
+				return new Response("Non WebSocket connection");
+			},
+			websocket: socketServer.handler
+		});
+		const cb = (client: any, message: any) => {
+			console.log("Server: Test message recieved.");
+			client.send("TEST", message);
+		};
+		socketServer.on("TEST", cb);
+		socketServer.off("TEST", cb);
+		try {
+			expect(
+				await new Promise<string | undefined>((resolve, reject) => {
+					const socketClient = client<"TEST", {TEST: string}>("ws://localhost:3000", {
+						open: () => {
+							console.log("Connection created!");
+							socketClient.send("TEST", "test");
+						},
+						close: (code, reason) => {
+							console.log("Closed connection with code " + code + ' and reason "' + reason + '"!');
+							resolve("close");
+						},
+						error: (error) => {
+							console.error(error);
+							resolve("error");
+						}
+					});
+					socketClient.on("TEST", (msg) => {
+						console.log("Client: Test message recieved.");
+						reject(msg);
+					});
+					setTimeout(() => {
+						resolve("no message recieved");
+					}, 300);
+				})
+			).toMatch("no message recieved");
+		} catch (e) {
+			throw e;
+		} finally {
+			bunServer.stop();
+		}
+	});
 	it("multiple clients", async () => {
-		const socketServer = server<undefined, "TEST" | "ROOM" | "ALL", {TEST: number; ROOM: number; ALL: undefined}>({perMessageDeflate: {compress: true, decompress: true}});
+		const socketServer = server<"TEST" | "ROOM" | "ALL", {TEST: number; ROOM: number; ALL: undefined}>({perMessageDeflate: {compress: true, decompress: true}});
 		const bunServer = Bun.serve({
 			port: 3000,
 			fetch(req, server) {
